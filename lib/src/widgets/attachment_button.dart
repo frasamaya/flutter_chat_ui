@@ -15,23 +15,6 @@ class AttachmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 24,
-      margin: const EdgeInsets.only(right: 16),
-      width: 24,
-      child: IconButton(
-        icon: InheritedChatTheme.of(context).theme.attachmentButtonIcon != null
-            ? InheritedChatTheme.of(context).theme.attachmentButtonIcon!
-            : Image.asset(
-                'assets/icon-attachment.png',
-                color: InheritedChatTheme.of(context).theme.inputTextColor,
-                package: 'flutter_chat_ui',
-              ),
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-        tooltip:
-            InheritedL10n.of(context).l10n.attachmentButtonAccessibilityLabel,
-      ),
-    );
+    return Container();
   }
 }
