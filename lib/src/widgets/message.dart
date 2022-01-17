@@ -149,7 +149,7 @@ class Message extends StatelessWidget {
                 color: !_currentUserIsAuthor ||
                         message.type == types.MessageType.image
                     ? const Color(0xfff7f7f8)
-                    : const Color(0xff6f61e8),
+                    : const Color(0xffe37071),
               ),
               child: ClipRRect(
                 borderRadius: _borderRadius,

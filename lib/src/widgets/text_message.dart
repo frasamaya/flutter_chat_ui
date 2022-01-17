@@ -30,16 +30,15 @@ class TextMessage extends StatelessWidget {
       color: user.id == message.authorId
           ? const Color(0xffffffff)
           : const Color(0xff1d1d21),
-      fontFamily: 'Avenir',
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
+      fontSize: 12,
+      fontWeight: FontWeight.w400,
       height: 1.375,
     );
 
     return LinkPreview(
       linkStyle: style,
       metadataTextStyle: style.copyWith(
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: FontWeight.w400,
       ),
       metadataTitleStyle: style.copyWith(
