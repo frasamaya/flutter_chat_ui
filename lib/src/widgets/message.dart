@@ -1,346 +1,170 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:flutter_chat_ui/src/widgets/file_message.dart';
+import 'package:flutter_chat_ui/src/widgets/image_message.dart';
+import 'package:flutter_chat_ui/src/widgets/inherited_user.dart';
+import 'package:flutter_chat_ui/src/widgets/text_message.dart';
 
-import '../models/emoji_enlargement_behavior.dart';
-import '../util.dart';
-import 'file_message.dart';
-import 'image_message.dart';
-import 'inherited_chat_theme.dart';
-import 'inherited_user.dart';
-import 'text_message.dart';
-
-/// Base widget for all message types in the chat. Renders bubbles around
-/// messages and status. Sets maximum width for a message for
-/// a nice look on larger screens.
 class Message extends StatelessWidget {
-  /// Creates a particular message from any message type
   const Message({
-    Key? key,
-    this.bubbleBuilder,
-    this.customMessageBuilder,
-    required this.emojiEnlargementBehavior,
-    this.fileMessageBuilder,
-    required this.hideBackgroundOnEmojiMessages,
-    this.imageMessageBuilder,
-    required this.message,
-    required this.messageWidth,
-    this.onAvatarTap,
-    this.onMessageLongPress,
-    this.onMessageStatusLongPress,
-    this.onMessageStatusTap,
-    this.onMessageTap,
+    Key key,
+    @required this.message,
+    @required this.messageWidth,
+    this.onFilePressed,
+    @required this.onImagePressed,
     this.onPreviewDataFetched,
-    required this.roundBorder,
-    required this.showAvatar,
-    required this.showName,
-    required this.showStatus,
-    required this.showUserAvatars,
-    this.textMessageBuilder,
-    required this.usePreviewData,
-  }) : super(key: key);
+    @required this.previousMessageSameAuthor,
+    @required this.shouldRenderTime,
+  })  : assert(message != null),
+        assert(messageWidth != null),
+        assert(previousMessageSameAuthor != null),
+        assert(shouldRenderTime != null),
+        super(key: key);
 
-  /// Customize the default bubble using this function. `child` is a content
-  /// you should render inside your bubble, `message` is a current message
-  /// (contains `author` inside) and `nextMessageInGroup` allows you to see
-  /// if the message is a part of a group (messages are grouped when written
-  /// in quick succession by the same author)
-  final Widget Function(
-    Widget child, {
-    required types.Message message,
-    required bool nextMessageInGroup,
-  })? bubbleBuilder;
-
-  /// Build a custom message inside predefined bubble
-  final Widget Function(types.CustomMessage, {required int messageWidth})?
-      customMessageBuilder;
-
-  /// Controls the enlargement behavior of the emojis in the
-  /// [types.TextMessage].
-  /// Defaults to [EmojiEnlargementBehavior.multi].
-  final EmojiEnlargementBehavior emojiEnlargementBehavior;
-
-  /// Build a file message inside predefined bubble
-  final Widget Function(types.FileMessage, {required int messageWidth})?
-      fileMessageBuilder;
-
-  /// Hide background for messages containing only emojis.
-  final bool hideBackgroundOnEmojiMessages;
-
-  /// Build an image message inside predefined bubble
-  final Widget Function(types.ImageMessage, {required int messageWidth})?
-      imageMessageBuilder;
-
-  /// Any message type
   final types.Message message;
-
-  /// Maximum message width
   final int messageWidth;
-
-  // Called when uses taps on an avatar
-  final void Function(types.User)? onAvatarTap;
-
-  /// Called when user makes a long press on any message
-  final void Function(BuildContext context, types.Message)? onMessageLongPress;
-
-  /// Called when user makes a long press on status icon in any message
-  final void Function(BuildContext context, types.Message)?
-      onMessageStatusLongPress;
-
-  /// Called when user taps on status icon in any message
-  final void Function(BuildContext context, types.Message)? onMessageStatusTap;
-
-  /// Called when user taps on any message
-  final void Function(BuildContext context, types.Message)? onMessageTap;
-
-  /// See [TextMessage.onPreviewDataFetched]
-  final void Function(types.TextMessage, types.PreviewData)?
+  final void Function(types.FileMessage) onFilePressed;
+  final void Function(String) onImagePressed;
+  final void Function(types.TextMessage, types.PreviewData)
       onPreviewDataFetched;
+  final bool previousMessageSameAuthor;
+  final bool shouldRenderTime;
 
-  /// Rounds border of the message to visually group messages together.
-  final bool roundBorder;
+  Widget _buildMessage() {
+    switch (message.type) {
+      case types.MessageType.file:
+        final types.FileMessage fileMessage = message;
+        return FileMessage(
+          message: fileMessage,
+          onPressed: onFilePressed,
+        );
+      case types.MessageType.image:
+        final types.ImageMessage imageMessage = message;
+        return ImageMessage(
+          message: imageMessage,
+          messageWidth: messageWidth,
+          onPressed: onImagePressed,
+        );
+      case types.MessageType.text:
+        final types.TextMessage textMessage = message;
+        return TextMessage(
+          message: textMessage,
+          onPreviewDataFetched: onPreviewDataFetched,
+        );
+      default:
+        return Container();
+    }
+  }
 
-  /// Show user avatar for the received message. Useful for a group chat.
-  final bool showAvatar;
+  Widget _buildStatus() {
+    switch (message.status) {
+      case types.Status.read:
+        return Image.asset(
+          'assets/icon-read.png',
+          color: const Color(0xff6f61e8),
+          package: 'flutter_chat_ui',
+        );
+      case types.Status.sending:
+        return SizedBox(
+          height: 12,
+          width: 12,
+          child: const CircularProgressIndicator(
+            backgroundColor: Colors.transparent,
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Color(0xff6f61e8),
+            ),
+          ),
+        );
+      case types.Status.sent:
+        return Image.asset(
+          'assets/icon-sent.png',
+          color: const Color(0xff6f61e8),
+          package: 'flutter_chat_ui',
+        );
+      default:
+        return Container();
+    }
+  }
 
-  /// See [TextMessage.showName]
-  final bool showName;
-
-  /// Show message's status
-  final bool showStatus;
-
-  /// Show user avatars for received messages. Useful for a group chat.
-  final bool showUserAvatars;
-
-  /// Build a text message inside predefined bubble.
-  final Widget Function(
-    types.TextMessage, {
-    required int messageWidth,
-    required bool showName,
-  })? textMessageBuilder;
-
-  /// See [TextMessage.usePreviewData]
-  final bool usePreviewData;
-
-  Widget _avatarBuilder(BuildContext context) {
-    final color = getUserAvatarNameColor(
-      message.author,
-      InheritedChatTheme.of(context).theme.userAvatarNameColors,
-    );
-    final hasImage = message.author.imageUrl != null;
-    final initials = getUserInitials(message.author);
-
-    return showAvatar
-        ? Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: GestureDetector(
-              onTap: () => onAvatarTap?.call(message.author),
-              child: CircleAvatar(
-                backgroundColor: hasImage
-                    ? InheritedChatTheme.of(context)
-                        .theme
-                        .userAvatarImageBackgroundColor
-                    : color,
-                backgroundImage:
-                    hasImage ? NetworkImage(message.author.imageUrl!) : null,
-                radius: 16,
-                child: !hasImage
-                    ? Text(
-                        initials,
-                        style: InheritedChatTheme.of(context)
-                            .theme
-                            .userAvatarTextStyle,
-                      )
-                    : null,
+  Widget _buildTime(bool currentUserIsAuthor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          margin: EdgeInsets.only(
+            right: currentUserIsAuthor ? 8 : 16,
+          ),
+          child: Text(
+            DateFormat.jm().format(
+              DateTime.fromMillisecondsSinceEpoch(
+                message.timestamp * 1000,
               ),
             ),
-          )
-        : const SizedBox(width: 40);
-  }
-
-  Widget _bubbleBuilder(
-    BuildContext context,
-    BorderRadius borderRadius,
-    bool currentUserIsAuthor,
-    bool enlargeEmojis,
-  ) {
-    return bubbleBuilder != null
-        ? bubbleBuilder!(
-            _messageBuilder(),
-            message: message,
-            nextMessageInGroup: roundBorder,
-          )
-        : enlargeEmojis && hideBackgroundOnEmojiMessages
-            ? _messageBuilder()
-            : Container(
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  color: !currentUserIsAuthor ||
-                          message.type == types.MessageType.image
-                      ? InheritedChatTheme.of(context).theme.secondaryColor
-                      : InheritedChatTheme.of(context).theme.primaryColor,
-                ),
-                child: ClipRRect(
-                  borderRadius: borderRadius,
-                  child: _messageBuilder(),
-                ),
-              );
-  }
-
-  Widget _messageBuilder() {
-    switch (message.type) {
-      case types.MessageType.custom:
-        final customMessage = message as types.CustomMessage;
-        return customMessageBuilder != null
-            ? customMessageBuilder!(customMessage, messageWidth: messageWidth)
-            : const SizedBox();
-      case types.MessageType.file:
-        final fileMessage = message as types.FileMessage;
-        return fileMessageBuilder != null
-            ? fileMessageBuilder!(fileMessage, messageWidth: messageWidth)
-            : FileMessage(message: fileMessage);
-      case types.MessageType.image:
-        final imageMessage = message as types.ImageMessage;
-        return imageMessageBuilder != null
-            ? imageMessageBuilder!(imageMessage, messageWidth: messageWidth)
-            : ImageMessage(message: imageMessage, messageWidth: messageWidth);
-      case types.MessageType.text:
-        final textMessage = message as types.TextMessage;
-        return textMessageBuilder != null
-            ? textMessageBuilder!(
-                textMessage,
-                messageWidth: messageWidth,
-                showName: showName,
-              )
-            : TextMessage(
-                emojiEnlargementBehavior: emojiEnlargementBehavior,
-                hideBackgroundOnEmojiMessages: hideBackgroundOnEmojiMessages,
-                message: textMessage,
-                onPreviewDataFetched: onPreviewDataFetched,
-                showName: showName,
-                usePreviewData: usePreviewData,
-              );
-      default:
-        return const SizedBox();
-    }
-  }
-
-  Widget _statusBuilder(BuildContext context) {
-    switch (message.status) {
-      case types.Status.delivered:
-      case types.Status.sent:
-        return InheritedChatTheme.of(context).theme.deliveredIcon != null
-            ? InheritedChatTheme.of(context).theme.deliveredIcon!
-            : Image.asset(
-                'assets/icon-delivered.png',
-                color: InheritedChatTheme.of(context).theme.primaryColor,
-                package: 'flutter_chat_ui',
-              );
-      case types.Status.error:
-        return InheritedChatTheme.of(context).theme.errorIcon != null
-            ? InheritedChatTheme.of(context).theme.errorIcon!
-            : Image.asset(
-                'assets/icon-error.png',
-                color: InheritedChatTheme.of(context).theme.errorColor,
-                package: 'flutter_chat_ui',
-              );
-      case types.Status.seen:
-        return InheritedChatTheme.of(context).theme.seenIcon != null
-            ? InheritedChatTheme.of(context).theme.seenIcon!
-            : Image.asset(
-                'assets/icon-seen.png',
-                color: InheritedChatTheme.of(context).theme.primaryColor,
-                package: 'flutter_chat_ui',
-              );
-      case types.Status.sending:
-        return InheritedChatTheme.of(context).theme.sendingIcon != null
-            ? InheritedChatTheme.of(context).theme.sendingIcon!
-            : Center(
-                child: SizedBox(
-                  height: 10,
-                  width: 10,
-                  child: CircularProgressIndicator(
-                    backgroundColor: Colors.transparent,
-                    strokeWidth: 1.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      InheritedChatTheme.of(context).theme.primaryColor,
-                    ),
-                  ),
-                ),
-              );
-      default:
-        return const SizedBox();
-    }
+            style: TextStyle(
+              color: const Color(0xff9e9cab),
+              fontFamily: 'Avenir',
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              height: 1.375,
+            ),
+          ),
+        ),
+        if (currentUserIsAuthor) _buildStatus()
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final _user = InheritedUser.of(context).user;
-    final _currentUserIsAuthor = _user.id == message.author.id;
-    final _enlargeEmojis =
-        emojiEnlargementBehavior != EmojiEnlargementBehavior.never &&
-            message is types.TextMessage &&
-            isConsistsOfEmojis(
-                emojiEnlargementBehavior, message as types.TextMessage);
-    final _messageBorderRadius =
-        InheritedChatTheme.of(context).theme.messageBorderRadius;
     final _borderRadius = BorderRadius.only(
-      bottomLeft: Radius.circular(
-        _currentUserIsAuthor || roundBorder ? _messageBorderRadius : 0,
-      ),
-      bottomRight: Radius.circular(_currentUserIsAuthor
-          ? roundBorder
-              ? _messageBorderRadius
-              : 0
-          : _messageBorderRadius),
-      topLeft: Radius.circular(_messageBorderRadius),
-      topRight: Radius.circular(_messageBorderRadius),
+      bottomLeft: Radius.circular(_user.id == message.authorId ? 20 : 0),
+      bottomRight: Radius.circular(_user.id == message.authorId ? 0 : 20),
+      topLeft: const Radius.circular(20),
+      topRight: const Radius.circular(20),
     );
+    final _currentUserIsAuthor = _user.id == message.authorId;
 
     return Container(
-      alignment:
-          _currentUserIsAuthor ? Alignment.centerRight : Alignment.centerLeft,
-      margin: const EdgeInsets.only(
-        bottom: 4,
-        left: 20,
+      alignment: _user.id == message.authorId
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
+      margin: EdgeInsets.only(
+        bottom: previousMessageSameAuthor ? 8 : 16,
+        left: 24,
+        right: 24,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!_currentUserIsAuthor && showUserAvatars) _avatarBuilder(context),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: messageWidth.toDouble(),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: messageWidth.toDouble(),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: _borderRadius,
+                color: !_currentUserIsAuthor ||
+                        message.type == types.MessageType.image
+                    ? const Color(0xfff7f7f8)
+                    : const Color(0xff6f61e8),
+              ),
+              child: ClipRRect(
+                borderRadius: _borderRadius,
+                child: _buildMessage(),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onLongPress: () => onMessageLongPress?.call(context, message),
-                  onTap: () => onMessageTap?.call(context, message),
-                  child: _bubbleBuilder(
-                    context,
-                    _borderRadius,
-                    _currentUserIsAuthor,
-                    _enlargeEmojis,
-                  ),
+            if (shouldRenderTime)
+              Container(
+                margin: EdgeInsets.only(
+                  top: 8,
                 ),
-              ],
-            ),
-          ),
-          if (_currentUserIsAuthor)
-            Padding(
-              padding: InheritedChatTheme.of(context).theme.statusIconPadding,
-              child: showStatus
-                  ? GestureDetector(
-                      onLongPress: () =>
-                          onMessageStatusLongPress?.call(context, message),
-                      onTap: () => onMessageStatusTap?.call(context, message),
-                      child: _statusBuilder(context),
-                    )
-                  : null,
-            ),
-        ],
+                child: _buildTime(_currentUserIsAuthor),
+              )
+          ],
+        ),
       ),
     );
   }
